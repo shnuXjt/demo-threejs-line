@@ -476,6 +476,7 @@ export default function Home() {
 	const stepHeight = 0.01;
 	const stepWidth = 0.1;
 	const heightSegments = [3, 10, 7];
+	const segmentHunit = 0.5;
 	const planR = 5;
 	const v = -5 * Math.PI / 180;
 
@@ -489,18 +490,82 @@ export default function Home() {
 	const euler = new Euler(0, v, 0, 'XYZ');
 	const vert: Vector3 = lastpoint.applyEuler(euler);
 	const tempHeight = vert.y + stepHeight;
-	
+
 	if (vert.y + stepHeight >= 10) {
-		// vert.y = 0;
-		// positions[currentPoint * 3] = vert.x;
-		// positions[currentPoint * 3 + 1] = vert.y + stepHeight;
-		// positions[currentPoint * 3 + 2] = vert.z;
 		return;
-	} else {
-		positions[currentPoint * 3] = vert.x;
-		positions[currentPoint * 3 + 1] = vert.y + stepHeight;
-		positions[currentPoint * 3 + 2] = vert.z;
 	}
+
+	// 高度还未到 heightSegments 第一个时
+	if (tempHeight < (heightSegments[0] - 10)) {
+		const yushu = (vert.y * 100 )% (segmentHunit * 100);
+		console.log("yushu: ", yushu);
+		const count = heightSegments[0] / segmentHunit;
+		const unitWidth = planR / count;
+		const chushu = Math.round(vert.y % segmentHunit);
+		console.log("sq: ", (new Vector2(vert.x, vert.z)).lengthSq());
+		console.log("sq2: ", Math.pow((0.5 + chushu * unitWidth),2 ));
+		if ( yushu === 0 && ((new Vector2(vert.x, vert.z)).lengthSq() < Math.pow((0.5 + chushu * unitWidth), 2))) {
+			positions[currentPoint * 3] = vert.x + unitWidth;
+			positions[currentPoint * 3 + 2] = vert.z+ unitWidth;
+			positions[currentPoint * 3 + 1] = vert.y ;
+		} else {
+			positions[currentPoint * 3] = vert.x;
+			positions[currentPoint * 3 + 2] = vert.z;
+			positions[currentPoint * 3 + 1] = tempHeight;
+		}
+		
+	} 
+	// else if (tempHeight < (heightSegments[1] + heightSegments[0] - 10)) {
+	// 	const yushu = vert.y % segmentHunit;
+	// 	const chushu = Math.round(vert.y % segmentHunit);
+	// 	const count = heightSegments[0] / segmentHunit;
+	// 	const unitWidth = planR / count;
+	// 	if ( yushu === 0 && ((new Vector2(vert.x, vert.z)).lengthSq() < Math.pow((0.5 + chushu * unitWidth), 2))) {
+	// 		positions[currentPoint * 3] = vert.x + unitWidth;
+	// 	positions[currentPoint * 3 + 2] = vert.z + unitWidth;
+	// 		positions[currentPoint * 3 + 1] = vert.y;
+	// 	} else {
+	// 		positions[currentPoint * 3] = vert.x;
+	// 	positions[currentPoint * 3 + 2] = vert.z;
+	// 		positions[currentPoint * 3 + 1] = tempHeight;
+	// 	}
+		
+
+	// } else if (tempHeight < (heightSegments[2] + heightSegments[1] + heightSegments[0] - 10)) {
+	// 	const yushu = vert.y % segmentHunit;
+	// 	const chushu = Math.round(vert.y % segmentHunit);
+	// 	const count = heightSegments[0] / segmentHunit;
+	// 	const unitWidth = planR / count;
+	// 	if ( yushu === 0 && ((new Vector2(vert.x, vert.z)).lengthSq() < Math.pow((0.5 + chushu * unitWidth), 2))) {
+	// 		positions[currentPoint * 3] = vert.x + unitWidth;
+	// 	positions[currentPoint * 3 + 2] = vert.z + unitWidth;
+	// 		positions[currentPoint * 3 + 1] = vert.y;
+	// 	} else {
+	// 		positions[currentPoint * 3] = vert.x;
+	// 	positions[currentPoint * 3 + 2] = vert.z;
+	// 		positions[currentPoint * 3 + 1] = tempHeight;
+	// 	}
+	// 	positions[currentPoint * 3] = vert.x;
+	// 	positions[currentPoint * 3 + 2] = vert.z;
+
+	// } else {
+	// 	positions[currentPoint * 3] = vert.x;
+	// 	positions[currentPoint * 3 + 1] = tempHeight;
+	// 	positions[currentPoint * 3 + 2] = vert.z;
+	// }
+	
+
+	// if (vert.y + stepHeight >= 10) {
+	// 	// vert.y = 0;
+	// 	// positions[currentPoint * 3] = vert.x;
+	// 	// positions[currentPoint * 3 + 1] = vert.y + stepHeight;
+	// 	// positions[currentPoint * 3 + 2] = vert.z;
+	// 	return;
+	// } else {
+	// 	positions[currentPoint * 3] = vert.x;
+	// 	positions[currentPoint * 3 + 1] = vert.y + stepHeight;
+	// 	positions[currentPoint * 3 + 2] = vert.z;
+	// }
   }
   return <div ref={lineContainer}></div>;
 }
