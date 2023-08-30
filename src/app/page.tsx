@@ -18,6 +18,10 @@ import {
   CapsuleGeometry,
   MeshStandardMaterial,
   DirectionalLight,
+  Line,
+  Euler,
+  BufferAttribute,
+  LineBasicMaterial,
 } from "three";
 
 import Stats from "three/examples/jsm/libs/stats.module.js";
@@ -129,6 +133,7 @@ export default function Home() {
 
 	// 细纺
 	createBobbin();
+	createLine();
 
     const sphereGeometry = new SphereGeometry(0.25, 8, 4);
     const sphereInterMaterial = new MeshBasicMaterial({
@@ -199,12 +204,12 @@ export default function Home() {
     line = new Line2(lineGeometry, matLine);
     line.computeLineDistances();
     line.scale.set(1, 1, 1);
-    scene.add(line);
+    // scene.add(line);
 
     thresholdLine = new Line2(lineGeometry, matThresholdLine);
     thresholdLine.computeLineDistances();
     thresholdLine.scale.set(1, 1, 1);
-    scene.add(thresholdLine);
+    // scene.add(thresholdLine);
 
     const geo = new BufferGeometry();
     geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
@@ -242,7 +247,7 @@ export default function Home() {
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
   }
-
+  let currentP = 1;
   function animate() {
     requestAnimationFrame(animate);
 
@@ -287,6 +292,16 @@ export default function Home() {
       sphereOnLine.visible = false;
       renderer.domElement.style.cursor = "";
     }
+
+	if (bobbin) {
+		bobbin.rotateY(-delta);
+		if (currentP <= 5000) {
+			updatePositions(currentP++, delta);
+		}
+
+		dLine.geometry.attributes.position.needsUpdate = true;
+		(dLine.material as LineMaterial).color. setHSL(0, Math.random(), 0.5)
+	}
 
     gpuPanel.startQuery();
     renderer.render(scene, camera);
@@ -414,5 +429,78 @@ export default function Home() {
 	return points;
 
   };
+
+  let dLine: Line;
+  let drawCount = 5000;
+
+  const createLine = () => {
+	const geometry = new BufferGeometry();
+	const positions = new Float32Array(5000 * 3);
+	initDLinePositions(positions);
+	geometry.setAttribute('position', new BufferAttribute(positions, 3));
+
+	geometry.setDrawRange(0, drawCount);
+
+	const material = new LineBasicMaterial({color: 0xD3D3D3, linewidth: 2});
+	dLine = new Line(geometry, material);
+
+	scene.add(dLine);
+  };
+
+  const initDLinePositions = (positions: Float32Array) => {
+	positions[0] = 0;
+	positions[1] = -10;
+	positions[2] = 0.5;
+
+	for (let i = 3; i < 1000 * 3; i +=3) {
+		positions[i] = 0;
+		positions[i + 1] = 10;
+		positions[i + 2] = 0;
+	}
+
+	for (let i = 1000 * 3; i < 2000 * 3; i +=3) {
+		positions[i] = positions[i - 3] + 50 / 3000;
+		positions[i + 1] = 10;
+		positions[i + 2] = 0;
+	}
+
+	for (let i = 2000 * 3; i < 5000 * 3; i +=3) {
+		positions[i] = 50;
+		positions[i + 1] = 10;
+		positions[i + 2] = 0;
+	}
+  };
+
+
+  const updatePositions = (currentPoint: number, delta: number) => {
+	const stepHeight = 0.01;
+	const stepWidth = 0.1;
+	const heightSegments = [3, 10, 7];
+	const planR = 5;
+	const v = -5 * Math.PI / 180;
+
+	const positions = dLine.geometry.attributes.position.array;
+	const lastpoint = new Vector3(
+		positions[(currentPoint - 1) * 3],
+		positions[(currentPoint - 1) * 3 + 1],
+		positions[(currentPoint - 1) * 3 + 2],
+	);
+
+	const euler = new Euler(0, v, 0, 'XYZ');
+	const vert: Vector3 = lastpoint.applyEuler(euler);
+	const tempHeight = vert.y + stepHeight;
+	
+	if (vert.y + stepHeight >= 10) {
+		// vert.y = 0;
+		// positions[currentPoint * 3] = vert.x;
+		// positions[currentPoint * 3 + 1] = vert.y + stepHeight;
+		// positions[currentPoint * 3 + 2] = vert.z;
+		return;
+	} else {
+		positions[currentPoint * 3] = vert.x;
+		positions[currentPoint * 3 + 1] = vert.y + stepHeight;
+		positions[currentPoint * 3 + 2] = vert.z;
+	}
+  }
   return <div ref={lineContainer}></div>;
 }
