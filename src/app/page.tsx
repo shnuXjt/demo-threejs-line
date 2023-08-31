@@ -46,6 +46,8 @@ export default function Home() {
   let clock: any;
   let bobbin: Mesh;
 
+  let aglo1data: any[] = [];
+
   let lineContainer = useRef<HTMLDivElement>(null);
 
   const color = new Color();
@@ -228,7 +230,8 @@ export default function Home() {
     stats.addPanel(gpuPanel);
     stats.showPanel(0);
     initGui();
-
+	aglo1data = generateHeightWeightSegments();
+	console.log('test: ', aglo1data);
 	
   }
 
@@ -295,7 +298,7 @@ export default function Home() {
 
 	if (bobbin) {
 		bobbin.rotateY(-delta);
-		if (currentP <= 5000) {
+		if (currentP <= DRAW_COUNT) {
 			updatePositions(currentP++, delta);
 		}
 
@@ -431,15 +434,15 @@ export default function Home() {
   };
 
   let dLine: Line;
-  let drawCount = 5000;
+  let DRAW_COUNT = 30000;
 
   const createLine = () => {
 	const geometry = new BufferGeometry();
-	const positions = new Float32Array(5000 * 3);
+	const positions = new Float32Array(DRAW_COUNT * 3);
 	initDLinePositions(positions);
 	geometry.setAttribute('position', new BufferAttribute(positions, 3));
 
-	geometry.setDrawRange(0, drawCount);
+	geometry.setDrawRange(0, DRAW_COUNT);
 
 	const material = new LineBasicMaterial({color: 0xD3D3D3, linewidth: 2});
 	dLine = new Line(geometry, material);
@@ -452,31 +455,31 @@ export default function Home() {
 	positions[1] = -10;
 	positions[2] = 0.5;
 
-	for (let i = 3; i < 1000 * 3; i +=3) {
+	for (let i = 3; i < (DRAW_COUNT - 10) * 3; i +=3) {
 		positions[i] = 0;
 		positions[i + 1] = 10;
 		positions[i + 2] = 0;
 	}
 
-	for (let i = 1000 * 3; i < 2000 * 3; i +=3) {
-		positions[i] = positions[i - 3] + 50 / 3000;
+	for (let i = (DRAW_COUNT - 10) * 3; i < DRAW_COUNT * 3; i +=3) {
+		positions[i] = positions[i - 3] + 50 / 10;
 		positions[i + 1] = 10;
 		positions[i + 2] = 0;
 	}
 
-	for (let i = 2000 * 3; i < 5000 * 3; i +=3) {
-		positions[i] = 50;
-		positions[i + 1] = 10;
-		positions[i + 2] = 0;
-	}
+	// for (let i = 2000 * 3; i < 5000 * 3; i +=3) {
+	// 	positions[i] = 50;
+	// 	positions[i + 1] = 10;
+	// 	positions[i + 2] = 0;
+	// }
   };
 
-
+  const stepHeight = 0.01;
+  const stepWidth = 0.2;
+  const heightSegments = [3, 10, 7];
+  const segmentHunit = 0.5;
   const updatePositions = (currentPoint: number, delta: number) => {
-	const stepHeight = 0.01;
-	const stepWidth = 0.1;
-	const heightSegments = [3, 10, 7];
-	const segmentHunit = 0.5;
+	
 	const planR = 5;
 	const v = -5 * Math.PI / 180;
 
@@ -494,27 +497,28 @@ export default function Home() {
 	if (vert.y + stepHeight >= 10) {
 		return;
 	}
+	ago1(currentPoint, vert, lastpoint, positions);
 
-	// 高度还未到 heightSegments 第一个时
-	if (tempHeight < (heightSegments[0] - 10)) {
-		const yushu = (vert.y * 100 )% (segmentHunit * 100);
-		console.log("yushu: ", yushu);
-		const count = heightSegments[0] / segmentHunit;
-		const unitWidth = planR / count;
-		const chushu = Math.round(vert.y % segmentHunit);
-		console.log("sq: ", (new Vector2(vert.x, vert.z)).lengthSq());
-		console.log("sq2: ", Math.pow((0.5 + chushu * unitWidth),2 ));
-		if ( yushu === 0 && ((new Vector2(vert.x, vert.z)).lengthSq() < Math.pow((0.5 + chushu * unitWidth), 2))) {
-			positions[currentPoint * 3] = vert.x + unitWidth;
-			positions[currentPoint * 3 + 2] = vert.z+ unitWidth;
-			positions[currentPoint * 3 + 1] = vert.y ;
-		} else {
-			positions[currentPoint * 3] = vert.x;
-			positions[currentPoint * 3 + 2] = vert.z;
-			positions[currentPoint * 3 + 1] = tempHeight;
-		}
+	// // 高度还未到 heightSegments 第一个时
+	// if (tempHeight < (heightSegments[0] - 10)) {
+	// 	const yushu = (vert.y * 100 )% (segmentHunit * 100);
+	// 	console.log("yushu: ", yushu);
+	// 	const count = heightSegments[0] / segmentHunit;
+	// 	const unitWidth = planR / count;
+	// 	const chushu = Math.round(vert.y % segmentHunit);
+	// 	console.log("sq: ", (new Vector2(vert.x, vert.z)).lengthSq());
+	// 	console.log("sq2: ", Math.pow((0.5 + chushu * unitWidth),2 ));
+	// 	if ( yushu === 0 && ((new Vector2(vert.x, vert.z)).lengthSq() < Math.pow((0.5 + chushu * unitWidth), 2))) {
+	// 		positions[currentPoint * 3] = vert.x + unitWidth;
+	// 		positions[currentPoint * 3 + 2] = vert.z+ unitWidth;
+	// 		positions[currentPoint * 3 + 1] = vert.y ;
+	// 	} else {
+	// 		positions[currentPoint * 3] = vert.x;
+	// 		positions[currentPoint * 3 + 2] = vert.z;
+	// 		positions[currentPoint * 3 + 1] = tempHeight;
+	// 	}
 		
-	} 
+	// } 
 	// else if (tempHeight < (heightSegments[1] + heightSegments[0] - 10)) {
 	// 	const yushu = vert.y % segmentHunit;
 	// 	const chushu = Math.round(vert.y % segmentHunit);
@@ -566,6 +570,76 @@ export default function Home() {
 	// 	positions[currentPoint * 3 + 1] = vert.y + stepHeight;
 	// 	positions[currentPoint * 3 + 2] = vert.z;
 	// }
+  }
+
+  let cengcount = 0;
+  const planR = 5;
+  const ago1 = (currentPoint: number, vert: Vector3, lastpoint: Vector3, positions: any) => {
+	if (aglo1data.length && cengcount < 40 && (Math.pow((planR), 2) - (new Vector2(vert.x, vert.z)).lengthSq()  > Number.MIN_VALUE)) {
+		const tempHeight = vert.y + stepHeight;
+		const len = heightSegments[0] / 0.5;
+		const cengdata = aglo1data[cengcount];
+		const highest = getHighestfromw(cengdata.w);
+		if (vert.y >= highest+ stepHeight) {
+			positions[currentPoint * 3] = vert.x * (1 + stepWidth);
+			positions[currentPoint * 3 + 2] = vert.z * (1 + stepWidth);
+			console.log('highest: ', highest);
+			console.log("cengcount: ", cengcount)
+			
+	
+			if ((new Vector2(vert.x, vert.z)).lengthSq() - Math.pow((cengdata.w), 2) > Number.MIN_VALUE) {
+				cengcount += 1;
+	
+			}
+			console.log('alog1data h: ', aglo1data[cengcount].h)
+			positions[currentPoint * 3 + 1] = aglo1data[cengcount].h;
+		} else {
+			positions[currentPoint * 3] = vert.x;
+			positions[currentPoint * 3 + 2] = vert.z;
+			positions[currentPoint * 3 + 1] = tempHeight;
+		}
+	}
+	
+
+  }
+
+  const getHighestfromw = (w: number) => {
+	const data = aglo1data.filter(item => item.w >= w).map(item => item.h).sort();
+	return data[data.length - 1];
+  }
+
+  let generateHeightWeightSegments = () => {
+	const initR = 0.5;
+	const heightUnit = 0.5;
+	const objectY = [-10, 10];
+	const result: any = [];
+	let sum = 0;
+
+	heightSegments.forEach((hs, index) => {
+		const count = Math.round(hs / heightUnit);
+		sum += count;
+		const rstep = (planR - initR) / count;
+		let w, h;
+		for (let i = 0; i < count; i++) {
+			switch(index) {
+				case 1:
+					w = planR;
+					h = objectY[0] + heightSegments[0] + i * heightUnit;
+					break;
+				case 2:
+					w = (planR - i * rstep);
+					h = objectY[0] + heightSegments[0] + heightSegments[1] + i * heightUnit;
+					break;
+				default:
+					w = initR + i * rstep;
+					h = objectY[0] + i * heightUnit;
+			}
+
+			result.push({w, h});
+		}
+	});
+	// cengcount = sum;
+	return result;
   }
   return <div ref={lineContainer}></div>;
 }
