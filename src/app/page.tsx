@@ -230,7 +230,7 @@ export default function Home() {
     stats.addPanel(gpuPanel);
     stats.showPanel(0);
     initGui();
-	aglo1data = generateHeightWeightSegments();
+	aglo1data = generateHeightWeightSegments().sort((a: any,b: any) => a.w - b.w);
 	console.log('test: ', aglo1data);
 	
   }
@@ -444,7 +444,7 @@ export default function Home() {
 
 	geometry.setDrawRange(0, DRAW_COUNT);
 
-	const material = new LineBasicMaterial({color: 0xD3D3D3, linewidth: 2});
+	const material = new LineBasicMaterial({color: 0xD3D3D3, linewidth: 5});
 	dLine = new Line(geometry, material);
 
 	scene.add(dLine);
@@ -581,8 +581,11 @@ export default function Home() {
 		const cengdata = aglo1data[cengcount];
 		const highest = getHighestfromw(cengdata.w);
 		if (vert.y >= highest+ stepHeight) {
-			positions[currentPoint * 3] = vert.x * (1 + stepWidth);
-			positions[currentPoint * 3 + 2] = vert.z * (1 + stepWidth);
+			const newVec = (new Vector2(vert.x, vert.z));
+			const vecLength = newVec.length();
+			const newVec1 = newVec.setLength(vecLength+ stepWidth);
+			positions[currentPoint * 3] = newVec1.x;
+			positions[currentPoint * 3 + 2] = newVec1.y;
 			console.log('highest: ', highest);
 			console.log("cengcount: ", cengcount)
 			
