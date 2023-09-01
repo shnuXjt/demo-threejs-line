@@ -58,36 +58,25 @@ export default function Home() {
 
   raycaster.params.Line2 = { threshold: 0 } as any;
 
-  const matLine = new LineMaterial({
-    color: 0xffffff,
-    linewidth: 1, // in world units with size attenuation, pixels otherwise
-    worldUnits: true,
-    vertexColors: true,
+  let rotateV = 10;
+  let stepHeight = 0.01;
+  let stepWidth = 0.2;
 
-    //resolution:  // to be set by renderer, eventually
-    alphaToCoverage: true,
-  });
+  let dLine: Line;
+  let DRAW_COUNT = 30000;
+  let cengcount = 0;
+  const planR = 5;
 
-  const matThresholdLine = new LineMaterial({
-    color: 0xffffff,
-    linewidth: matLine.linewidth, // in world units with size attenuation, pixels otherwise
-    worldUnits: true,
-    // vertexColors: true,
-    transparent: true,
-    opacity: 0.2,
-    depthTest: false,
-    visible: false,
-    //resolution:  // to be set by renderer, eventually
-  });
+  let canRestartFlag = false;
 
   const params = {
-    "line type": 0,
-    "world units": matLine.worldUnits,
-    "visualize threshold": matThresholdLine.visible,
-    width: matLine.linewidth,
-    alphaToCoverage: matLine.alphaToCoverage,
-    threshold: raycaster.params.Line2?.threshold,
-    translation: raycaster.params.Line2?.threshold,
+    // "line type": 0,
+    // "world units": matLine.worldUnits,
+    // "visualize threshold": matThresholdLine.visible,
+    // width: matLine.linewidth,
+    // alphaToCoverage: matLine.alphaToCoverage,
+    "速度": rotateV,
+    "线的半径增加宽度": stepWidth,
     animate: true,
   };
 
@@ -101,6 +90,7 @@ export default function Home() {
 
   function init() {
     clock = new Clock();
+	cengcount = 0;
 
     renderer = new WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -137,89 +127,13 @@ export default function Home() {
 	createBobbin();
 	createLine();
 
-    const sphereGeometry = new SphereGeometry(0.25, 8, 4);
-    const sphereInterMaterial = new MeshBasicMaterial({
-      color: 0xff0000,
-      depthTest: false,
-    });
-    const sphereOnLineMaterial = new MeshBasicMaterial({
-      color: 0x00ff00,
-      depthTest: false,
-    });
-
-    sphereInter = new Mesh(sphereGeometry, sphereInterMaterial);
-    sphereOnLine = new Mesh(sphereGeometry, sphereOnLineMaterial);
-    sphereInter.visible = false;
-    sphereOnLine.visible = false;
-    sphereInter.renderOrder = 10;
-    sphereOnLine.renderOrder = 10;
-    scene.add(sphereInter);
-    scene.add(sphereOnLine);
-
-    // Position and THREE.Color Data
-
-    const positions = [];
-    const colors = [];
-    const points = [];
-    for (let i = -50; i < 50; i++) {
-      const t = i / 3;
-      points.push(new Vector3(t * Math.sin(2 * t), t, t * Math.cos(2 * t)));
-    }
-
-	const newpoints = getBobbinPoints();
-	// bobbin.visible = false;
-    const spline = new CatmullRomCurve3(newpoints);
-    const divisions = Math.round(3 * newpoints.length);
-    const point = new Vector3();
-    const color = new Color();
-
-    for (let i = 0, l = divisions; i < l; i++) {
-      const t = i / l;
-
-      spline.getPoint(t, point);
-      positions.push(point.x, point.y, point.z);
-
-      color.setHSL(t, 1.0, 0.5, SRGBColorSpace);
-      colors.push(color.r, color.g, color.b);
-    }
-
-    const lineGeometry = new LineGeometry();
-    lineGeometry.setPositions(positions);
-    lineGeometry.setColors(colors);
-
-    const segmentsGeometry = new LineSegmentsGeometry();
-    segmentsGeometry.setPositions(positions);
-    segmentsGeometry.setColors(colors);
-
-    segments = new LineSegments2(segmentsGeometry, matLine);
-    segments.computeLineDistances();
-    segments.scale.set(1, 1, 1);
-    scene.add(segments);
-    segments.visible = false;
-
-    thresholdSegments = new LineSegments2(segmentsGeometry, matThresholdLine);
-    thresholdSegments.computeLineDistances();
-    thresholdSegments.scale.set(1, 1, 1);
-    scene.add(thresholdSegments);
-    thresholdSegments.visible = false;
-
-    line = new Line2(lineGeometry, matLine);
-    line.computeLineDistances();
-    line.scale.set(1, 1, 1);
-    // scene.add(line);
-
-    thresholdLine = new Line2(lineGeometry, matThresholdLine);
-    thresholdLine.computeLineDistances();
-    thresholdLine.scale.set(1, 1, 1);
-    // scene.add(thresholdLine);
-
-    const geo = new BufferGeometry();
-    geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
-    geo.setAttribute("color", new Float32BufferAttribute(colors, 3));
+    // const geo = new BufferGeometry();
+    // geo.setAttribute("position", new Float32BufferAttribute(positions, 3));
+    // geo.setAttribute("color", new Float32BufferAttribute(colors, 3));
 
     //
 
-    document.addEventListener("pointermove", onPointerMove);
+    // document.addEventListener("pointermove", onPointerMove);
     window.addEventListener("resize", onWindowResize);
     onWindowResize();
 
@@ -242,8 +156,8 @@ export default function Home() {
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     // renderer will set this eventually
-    matLine.resolution.set(window.innerWidth, window.innerHeight);
-    matThresholdLine.resolution.set(window.innerWidth, window.innerHeight);
+    // matLine.resolution.set(window.innerWidth, window.innerHeight);
+    // matThresholdLine.resolution.set(window.innerWidth, window.innerHeight);
   }
 
   function onPointerMove(event: any) {
@@ -258,53 +172,25 @@ export default function Home() {
 
     const delta = clock.getDelta();
 
-    const obj = line.visible ? line : segments;
-    thresholdLine.position.copy(line.position);
-    thresholdLine.quaternion.copy(line.quaternion);
-    thresholdSegments.position.copy(segments.position);
-    thresholdSegments.quaternion.copy(segments.quaternion);
-
     // if (params.animate) {
     //   line.rotation.y += delta * 0.1;
 
     //   segments.rotation.y = line.rotation.y;
     // }
-
-    raycaster.setFromCamera(pointer, camera);
-
-    const intersects = raycaster.intersectObject(obj);
-
-    if (intersects.length > 0) {
-      sphereInter.visible = true;
-      sphereOnLine.visible = true;
-
-      sphereInter.position.copy(intersects[0].point);
-      sphereOnLine.position.copy((intersects[0] as any).pointOnLine);
-
-      const index = intersects[0].faceIndex as any;
-      const colors = obj.geometry.getAttribute("instanceColorStart");
-
-      color.fromBufferAttribute(colors, index);
-
-      sphereInter.material.color.copy(color).offsetHSL(0.3, 0, 0);
-      sphereOnLine.material.color.copy(color).offsetHSL(0.7, 0, 0);
-
-      renderer.domElement.style.cursor = "crosshair";
-    } else {
-      sphereInter.visible = false;
-      sphereOnLine.visible = false;
-      renderer.domElement.style.cursor = "";
-    }
-
-	if (bobbin) {
-		bobbin.rotateY(-delta);
-		if (currentP <= DRAW_COUNT) {
-			updatePositions(currentP++, delta);
+	if (params.animate) {
+		if (bobbin) {
+			bobbin.rotateY(-delta);
+			if (currentP <= DRAW_COUNT) {
+				updatePositions(currentP++, delta);
+			} else {
+				canRestartFlag = true;
+			}
+	
+			dLine.geometry.attributes.position.needsUpdate = true;
+			
 		}
-
-		dLine.geometry.attributes.position.needsUpdate = true;
-		(dLine.material as LineMaterial).color. setHSL(0, Math.random(), 0.5)
 	}
+	
 
     gpuPanel.startQuery();
     renderer.render(scene, camera);
@@ -314,68 +200,58 @@ export default function Home() {
   //
 
   function switchLine(val: any) {
-    switch (val) {
-      case 0:
-        line.visible = true;
-        thresholdLine.visible = true;
+    // switch (val) {
+    //   case 0:
+    //     line.visible = true;
+    //     thresholdLine.visible = true;
 
-        segments.visible = false;
-        thresholdSegments.visible = false;
+    //     segments.visible = false;
+    //     thresholdSegments.visible = false;
 
-        break;
+    //     break;
 
-      case 1:
-        line.visible = false;
-        thresholdLine.visible = false;
+    //   case 1:
+    //     line.visible = false;
+    //     thresholdLine.visible = false;
 
-        segments.visible = true;
-        thresholdSegments.visible = true;
+    //     segments.visible = true;
+    //     thresholdSegments.visible = true;
 
-        break;
-    }
+    //     break;
+    // }
   }
 
   function initGui() {
     gui = new GUI();
 
-    gui
-      .add(params, "line type", { LineGeometry: 0, LineSegmentsGeometry: 1 })
-      .onChange(function (val: any) {
-        switchLine(val);
-      })
-      .setValue(0);
+    // gui
+    //   .add(params, "line type", { LineGeometry: 0, LineSegmentsGeometry: 1 })
+    //   .onChange(function (val: any) {
+    //     switchLine(val);
+    //   })
+    //   .setValue(0);
 
-    gui.add(params, "world units").onChange(function (val: any) {
-      matLine.worldUnits = val;
-      matLine.needsUpdate = true;
+    // gui.add(params, "world units").onChange(function (val: any) {
+      
+    // }).setValue(false);
 
-      matThresholdLine.worldUnits = val;
-      matThresholdLine.needsUpdate = true;
-    }).setValue(false);
+    // gui.add(params, "visualize threshold").onChange(function (val: any) {
+    // });
 
-    gui.add(params, "visualize threshold").onChange(function (val: any) {
-      matThresholdLine.visible = val;
+    // gui.add(params, "width", 1, 10).onChange(function (val: any) {
+    // });
+
+    // gui.add(params, "alphaToCoverage").onChange(function (val: any) {
+    // });
+
+    gui.add(params, "速度", 10, 60).onChange(function (val: any) {
+		rotateV = val;
     });
 
-    gui.add(params, "width", 1, 10).onChange(function (val: any) {
-      matLine.linewidth = val;
-      matThresholdLine.linewidth =
-        matLine.linewidth + (raycaster.params.Line2?.threshold || 0);
-    });
-
-    gui.add(params, "alphaToCoverage").onChange(function (val: any) {
-      matLine.alphaToCoverage = val;
-    });
-
-    gui.add(params, "threshold", 0, 10).onChange(function (val: any) {
-      raycaster.params.Line2 && (raycaster.params.Line2.threshold = val);
-      matThresholdLine.linewidth =
-        matLine.linewidth + (raycaster.params.Line2?.threshold || 0);
-    });
-
-    gui.add(params, "translation", 0, 10).onChange(function (val: any) {
-      line.position.x = val;
-      segments.position.x = val;
+    gui.add(params, "线的半径增加宽度", 0, 2).onChange(function (val: any) {
+    //   line.position.x = val;
+    //   segments.position.x = val;
+	stepWidth = val;
     });
 
     gui.add(params, "animate");
@@ -433,8 +309,7 @@ export default function Home() {
 
   };
 
-  let dLine: Line;
-  let DRAW_COUNT = 30000;
+  
 
   const createLine = () => {
 	const geometry = new BufferGeometry();
@@ -474,14 +349,13 @@ export default function Home() {
 	// }
   };
 
-  const stepHeight = 0.01;
-  const stepWidth = 0.2;
+  
   const heightSegments = [3, 10, 7];
   const segmentHunit = 0.5;
   const updatePositions = (currentPoint: number, delta: number) => {
 	
 	const planR = 5;
-	const v = -5 * Math.PI / 180;
+	const v = -rotateV * Math.PI / 180;
 
 	const positions = dLine.geometry.attributes.position.array;
 	const lastpoint = new Vector3(
@@ -499,83 +373,12 @@ export default function Home() {
 	}
 	ago1(currentPoint, vert, lastpoint, positions);
 
-	// // 高度还未到 heightSegments 第一个时
-	// if (tempHeight < (heightSegments[0] - 10)) {
-	// 	const yushu = (vert.y * 100 )% (segmentHunit * 100);
-	// 	console.log("yushu: ", yushu);
-	// 	const count = heightSegments[0] / segmentHunit;
-	// 	const unitWidth = planR / count;
-	// 	const chushu = Math.round(vert.y % segmentHunit);
-	// 	console.log("sq: ", (new Vector2(vert.x, vert.z)).lengthSq());
-	// 	console.log("sq2: ", Math.pow((0.5 + chushu * unitWidth),2 ));
-	// 	if ( yushu === 0 && ((new Vector2(vert.x, vert.z)).lengthSq() < Math.pow((0.5 + chushu * unitWidth), 2))) {
-	// 		positions[currentPoint * 3] = vert.x + unitWidth;
-	// 		positions[currentPoint * 3 + 2] = vert.z+ unitWidth;
-	// 		positions[currentPoint * 3 + 1] = vert.y ;
-	// 	} else {
-	// 		positions[currentPoint * 3] = vert.x;
-	// 		positions[currentPoint * 3 + 2] = vert.z;
-	// 		positions[currentPoint * 3 + 1] = tempHeight;
-	// 	}
-		
-	// } 
-	// else if (tempHeight < (heightSegments[1] + heightSegments[0] - 10)) {
-	// 	const yushu = vert.y % segmentHunit;
-	// 	const chushu = Math.round(vert.y % segmentHunit);
-	// 	const count = heightSegments[0] / segmentHunit;
-	// 	const unitWidth = planR / count;
-	// 	if ( yushu === 0 && ((new Vector2(vert.x, vert.z)).lengthSq() < Math.pow((0.5 + chushu * unitWidth), 2))) {
-	// 		positions[currentPoint * 3] = vert.x + unitWidth;
-	// 	positions[currentPoint * 3 + 2] = vert.z + unitWidth;
-	// 		positions[currentPoint * 3 + 1] = vert.y;
-	// 	} else {
-	// 		positions[currentPoint * 3] = vert.x;
-	// 	positions[currentPoint * 3 + 2] = vert.z;
-	// 		positions[currentPoint * 3 + 1] = tempHeight;
-	// 	}
-		
-
-	// } else if (tempHeight < (heightSegments[2] + heightSegments[1] + heightSegments[0] - 10)) {
-	// 	const yushu = vert.y % segmentHunit;
-	// 	const chushu = Math.round(vert.y % segmentHunit);
-	// 	const count = heightSegments[0] / segmentHunit;
-	// 	const unitWidth = planR / count;
-	// 	if ( yushu === 0 && ((new Vector2(vert.x, vert.z)).lengthSq() < Math.pow((0.5 + chushu * unitWidth), 2))) {
-	// 		positions[currentPoint * 3] = vert.x + unitWidth;
-	// 	positions[currentPoint * 3 + 2] = vert.z + unitWidth;
-	// 		positions[currentPoint * 3 + 1] = vert.y;
-	// 	} else {
-	// 		positions[currentPoint * 3] = vert.x;
-	// 	positions[currentPoint * 3 + 2] = vert.z;
-	// 		positions[currentPoint * 3 + 1] = tempHeight;
-	// 	}
-	// 	positions[currentPoint * 3] = vert.x;
-	// 	positions[currentPoint * 3 + 2] = vert.z;
-
-	// } else {
-	// 	positions[currentPoint * 3] = vert.x;
-	// 	positions[currentPoint * 3 + 1] = tempHeight;
-	// 	positions[currentPoint * 3 + 2] = vert.z;
-	// }
 	
-
-	// if (vert.y + stepHeight >= 10) {
-	// 	// vert.y = 0;
-	// 	// positions[currentPoint * 3] = vert.x;
-	// 	// positions[currentPoint * 3 + 1] = vert.y + stepHeight;
-	// 	// positions[currentPoint * 3 + 2] = vert.z;
-	// 	return;
-	// } else {
-	// 	positions[currentPoint * 3] = vert.x;
-	// 	positions[currentPoint * 3 + 1] = vert.y + stepHeight;
-	// 	positions[currentPoint * 3 + 2] = vert.z;
-	// }
   }
 
-  let cengcount = 0;
-  const planR = 5;
   const ago1 = (currentPoint: number, vert: Vector3, lastpoint: Vector3, positions: any) => {
-	if (aglo1data.length && cengcount < 40 && (Math.pow((planR), 2) - (new Vector2(vert.x, vert.z)).lengthSq()  > Number.MIN_VALUE)) {
+	if (aglo1data.length && cengcount < aglo1data.length && (Math.pow((planR), 2) - (new Vector2(vert.x, vert.z)).lengthSq()  > Number.MIN_VALUE)) {
+		(dLine.material as LineMaterial).color. setHSL(0, Math.random(), 0.5)
 		const tempHeight = vert.y + stepHeight;
 		const len = heightSegments[0] / 0.5;
 		const cengdata = aglo1data[cengcount];
@@ -588,10 +391,12 @@ export default function Home() {
 			positions[currentPoint * 3 + 2] = newVec1.y;
 			console.log('highest: ', highest);
 			console.log("cengcount: ", cengcount)
+			jianian(positions);
 			
 	
 			if ((new Vector2(vert.x, vert.z)).lengthSq() - Math.pow((cengdata.w), 2) > Number.MIN_VALUE) {
 				cengcount += 1;
+				
 	
 			}
 			console.log('alog1data h: ', aglo1data[cengcount].h)
@@ -601,6 +406,9 @@ export default function Home() {
 			positions[currentPoint * 3 + 2] = vert.z;
 			positions[currentPoint * 3 + 1] = tempHeight;
 		}
+	} else {
+		canRestartFlag = true;
+		(dLine.material as LineMaterial).color. setHSL(0, 0, 0.5)
 	}
 	
 
@@ -644,5 +452,23 @@ export default function Home() {
 	// cengcount = sum;
 	return result;
   }
-  return <div ref={lineContainer}></div>;
+
+  const jianian = (positions: any[]) => {
+	// TODO 加捻
+  }
+
+  const restart =() => {
+	// console.log("bobbin: ", bobbin);
+    const positions: any = dLine.geometry.attributes.position.array;
+    initDLinePositions(positions);
+    currentP = 1;
+    cengcount = 0;
+    dLine.geometry.attributes.position.needsUpdate = true;
+    
+
+  }
+  return <div className="relative">
+    <div className="canvas" ref={lineContainer} ></div>
+    <button disabled={!canRestartFlag} className="absolute bottom-2 right-4 px-1 py-2 bg-neutral-800 text-slate-300 rounded opacity-70 hover:opacity-100 disabled:opacity-40" onClick={() => restart()}>重新开始</button>
+  </div>;
 }
